@@ -4,6 +4,8 @@ import express from 'express';
 import helmet from 'helmet';
 import config from '../config';
 import routes from '../api';
+import {Request, Response } from "express"
+import * as path from "path";
 
 export default ({ app }: { app: express.Application }): void => {
   /**
@@ -34,6 +36,12 @@ export default ({ app }: { app: express.Application }): void => {
 
   // Middleware that transforms the raw string of req.body into json
   app.use(bodyParser.json());
+
+  app.get("/", handleHomePage)
+
+  function handleHomePage(_req: Request, res: Response) {
+    res.status(200).sendFile(path.join(process.cwd(), "/views/index.html"))
+  }
 
   // Load API routes
   app.use(config.api.prefix, routes());

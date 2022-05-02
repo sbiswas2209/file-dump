@@ -31,31 +31,33 @@ const path = __importStar(require("path"));
 const multer_1 = __importDefault(require("multer"));
 const fs = __importStar(require("fs"));
 const mime = __importStar(require("mime"));
+const logger_1 = __importDefault(require("../../loaders/logger"));
 const fileRouter = (0, express_1.Router)();
 const storage = multer_1.default.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'uploads/');
     },
     filename: function (req, file, cb) {
-        cb(null, Date.now() + path.extname(file.originalname)); //Appending extension
+        cb(null, encodeURI(file.originalname) + path.extname(file.originalname)); //Appending extension
     }
 });
 const upload = (0, multer_1.default)({ storage: storage });
 fileRouter.post("/upload", upload.array("files"), handleUpload);
 fileRouter.get("/download", handleDownload);
 async function handleDownload(req, res) {
+    logger_1.default.info(encodeURI(req.query.v.toString()));
     if (req.query.v === undefined) {
         res.status(400).json({
             "message": "Invalid Request"
         });
     }
-    if (fs.existsSync(`uploads/${req.query.v}`)) {
-        const stat = fs.statSync(`uploads/${req.query.v}`);
+    if (fs.existsSync(`uploads/${encodeURI(req.query.v.toString())}`)) {
+        const stat = fs.statSync(`uploads/${encodeURI(req.query.v.toString())}`);
         res.writeHead(200, "File Found", {
-            "Content-Type": mime.getType(`uploads/${req.query.v}`),
+            "Content-Type": mime.getType(`uploads/${encodeURI(req.query.v.toString())}`),
             "Content-Length": stat.size
         });
-        const readStream = fs.createReadStream(`uploads/${req.query.v}`);
+        const readStream = fs.createReadStream(`uploads/${encodeURI(req.query.v.toString())}`);
         readStream.pipe(res);
     }
     else {
@@ -66,8 +68,10 @@ async function handleDownload(req, res) {
 }
 async function handleUpload(req, res) {
     console.log(req.files);
+    const files = req.files;
     res.status(200).json({
-        "message": "File Uploaded"
+        "message": "File Uploaded",
+        "links": files === null || files === void 0 ? void 0 : files.map(e => `http://localhost:5050/api/files/download?v=${encodeURI(e === null || e === void 0 ? void 0 : e.originalname) + path.extname(e === null || e === void 0 ? void 0 : e.originalname)}`)
     });
 }
 exports.default = fileRouter;
